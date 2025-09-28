@@ -1,0 +1,439 @@
+<!doctype html>
+<!--
+   Copyright 2025 Neaera Consulting LLC
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>J2735 WebAssembly Demo</title>
+    <style>body {
+        font-family: arial, serif;
+        margin: 0;
+        background-color: azure;
+    }
+
+    .emscripten {
+        padding-right: 0;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+    }
+
+    div.emscripten {
+        text-align: center;
+    }
+
+    div.emscripten_border {
+        border: 1px solid black;
+        padding: 1em;
+        margin: 3px;
+    }
+
+    /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+    canvas.emscripten {
+        border: 0px none;
+        background-color: black;
+    }
+
+    #emscripten_logo {
+        display: inline-block;
+        margin: 0;
+        padding: 6px;
+        width: 265px;
+    }
+
+    .spinner {
+        height: 30px;
+        width: 30px;
+        margin: 0;
+        margin-top: 20px;
+        margin-left: 20px;
+        display: inline-block;
+        vertical-align: top;
+
+        -webkit-animation: rotation .8s linear infinite;
+        -moz-animation: rotation .8s linear infinite;
+        -o-animation: rotation .8s linear infinite;
+        animation: rotation 0.8s linear infinite;
+
+        border-left: 5px solid rgb(235, 235, 235);
+        border-right: 5px solid rgb(235, 235, 235);
+        border-bottom: 5px solid rgb(235, 235, 235);
+        border-top: 5px solid rgb(120, 120, 120);
+
+        border-radius: 100%;
+        background-color: rgb(189, 215, 46);
+    }
+
+    @-webkit-keyframes rotation {
+        from {
+            -webkit-transform: rotate(0deg);
+        }
+        to {
+            -webkit-transform: rotate(360deg);
+        }
+    }
+
+    @-moz-keyframes rotation {
+        from {
+            -moz-transform: rotate(0deg);
+        }
+        to {
+            -moz-transform: rotate(360deg);
+        }
+    }
+
+    @-o-keyframes rotation {
+        from {
+            -o-transform: rotate(0deg);
+        }
+        to {
+            -o-transform: rotate(360deg);
+        }
+    }
+
+    @keyframes rotation {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    #status {
+        display: inline-block;
+        vertical-align: top;
+        margin-top: 30px;
+        margin-left: 20px;
+        font-weight: bold;
+        color: rgb(120, 120, 120);
+    }
+
+    #progress {
+        height: 20px;
+        width: 300px;
+    }
+
+    #controls {
+        display: inline-block;
+        float: right;
+        vertical-align: top;
+        margin-top: 30px;
+        margin-right: 20px;
+    }
+
+    textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 200px;
+        margin: 5px 0;
+        border-left: 0px;
+        border-right: 0px;
+        padding: 0.5em;
+        display: block;
+        background-color: black;
+        color: white;
+        font-family: monospace;
+        outline: none;
+        font-size: 11pt;
+    }
+
+    label {
+        font-weight: bold;
+        font-size: 14pt;
+    }
+
+    span {
+        font-size: 12pt;
+    }
+
+    #output {
+        
+    }
+
+    #input {
+        
+    }
+
+    h1 {
+        margin: 10px 0 0 10px;
+        font-size: 28pt;
+    }
+
+    input[type=button] {
+        width: 100px;
+        height: 30px;
+        font-size: 12pt;
+    }
+
+    input[type=text] {
+        font-size: 14pt;
+    }
+
+    select {
+        font-size: 12pt;
+    }
+
+    /* If this is a phone in portrait mode, make text larger */
+    @media only screen and (max-device-width: 480px) and (orientation: portrait) {
+        h1 {
+            font-size: 36pt;
+        }
+        textarea {
+            font-size: 18pt;
+            height: 400px;
+        }
+        label {
+            font-size: 22pt;
+        }
+        input[type=button] {
+            font-size: 22pt;
+            width: 250px;
+            height: 50px;
+            margin-top:20px;
+            margin-bottom:20px;
+        }
+        input[type=text] {
+            font-size: 22pt;
+        }
+        select {
+            font-size: 22pt;
+        }
+        span {
+            font-size: 18pt;
+        }
+    }
+    </style>
+</head>
+<body>
+
+<div style="width:100%;text-align:center">
+    <h1>J2735/2024 WebAssembly Demo</h1>
+</div>
+
+<div class="spinner" id='spinner'></div>
+<div class="emscripten" id="status">Downloading...</div>
+
+
+<div class="emscripten">
+    <progress value="0" max="100" id="progress" hidden=1></progress>
+</div>
+<div class="emscripten_border">
+    <label for="example-select">Examples</label>
+    <select name="examples" id="example-select" onchange="selectExample(this.value);">
+        <option value="">--choose an example--</option>
+        <option value="spatMessageFrame">SPAT MessageFrame (UPER)</option>
+        <option value="bsmMessageFrame">BSM MessageFrame (UPER)</option>
+        <option value="rsmMessageFrame">RSM MessageFrame (UPER)</option>
+        <option value="VehicleEventFlags">VehicleEventFlags (UPER)</option>
+        <option value="mapData">MapData (UPER)</option>
+        <option value="srmMessageFrameXer">SRM MessageFrame (XER)</option>
+        <option value="ssmJer">SSM (JER)</option>
+        <option value="rtcmJer">RTCM (JER)</option>
+    </select>
+</div>
+<div class="emscripten_border">
+    <label for="pdu">PDU</label>
+    <input type="text" id="pdu" value="MessageFrame"/>
+    <br/>
+    <br/>
+    <label for="from-select">From Encoding</label>
+    <select name="from" id="from-select">
+        <option value="uper" selected="selected">UPER (hex)</option>
+        <option value="jer">JER</option>
+        <option value="xer">XER (canonical)</option>
+    </select>
+    <textarea id="input"></textarea>
+</div>
+<div style="width:100%;text-align:center">
+    <input type="button" style="font-weight:bold" value="Convert" onclick="convert()"/>
+    <span id="result"></span>
+</div>
+<div class="emscripten_border">
+    <label for="to-select">To Encoding</label>
+    <select name="to" id="to-select">
+        <option value="uper">UPER (hex)</option>
+        <option value="jer" selected="selected">JER</option>
+        <option value="xer">XER (canonical)</option>
+    </select>
+    <textarea id="output"></textarea>
+</div>
+
+
+
+
+<script type='text/javascript'>
+    let statusElement = document.getElementById('status');
+    let progressElement = document.getElementById('progress');
+    let spinnerElement = document.getElementById('spinner');
+    // var canvasElement = document.getElementById('canvas');
+    let outputElement = document.getElementById('output');
+    if (outputElement) outputElement.value = ''; // clear browser cache
+
+    const pduElement = document.getElementById('pdu');
+    const inputElement = document.getElementById('input');
+    const exampleElement = document.getElementById('example-select');
+    const fromElement = document.getElementById('from-select');
+    const toElement = document.getElementById('to-select');
+
+    var Module = {
+        print(...args) {
+            console.log(...args);
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            if (outputElement) {
+                var text = args.join(' ');
+                outputElement.value += text + "\n";
+                outputElement.scrollTop = outputElement.scrollHeight; // focus on bottom
+            }
+        },
+        // canvas: canvasElement,
+        setStatus(text) {
+            Module.setStatus.last ??= {time: Date.now(), text: ''};
+            if (text === Module.setStatus.last.text) return;
+            var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+            var now = Date.now();
+            // if this is a progress update, skip it if too soon
+            if (m && now - Module.setStatus.last.time < 30) return;
+            Module.setStatus.last.time = now;
+            Module.setStatus.last.text = text;
+            if (m) {
+                text = m[1];
+                progressElement.value = parseInt(m[2]) * 100;
+                progressElement.max = parseInt(m[4]) * 100;
+                progressElement.hidden = false;
+                spinnerElement.hidden = false;
+            } else {
+                progressElement.value = null;
+                progressElement.max = null;
+                progressElement.hidden = true;
+                if (!text) spinnerElement.style.display = 'none';
+            }
+            statusElement.innerHTML = text;
+        },
+        totalDependencies: 0,
+        monitorRunDependencies(left) {
+            this.totalDependencies = Math.max(this.totalDependencies, left);
+            Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        }
+    };
+    Module.setStatus('Downloading...');
+    window.onerror = (event) => {
+        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+        Module.setStatus('Exception thrown, see JavaScript console');
+        spinnerElement.style.display = 'none';
+        Module.setStatus = (text) => {
+            if (text) console.error('[post-exception status] ' + text);
+        };
+    };
+
+    function convert() {
+        const pduValue = pduElement.value;
+        const inputValue = inputElement.value;
+        const toValue = toElement.value;
+        const fromValue = fromElement.value;
+        const pduPtr = Module.stringToNewUTF8(pduValue);
+        const hexPtr = Module.stringToNewUTF8(inputValue);
+        const toEncPtr = Module.stringToNewUTF8(toValue);
+        const fromEncPtr = Module.stringToNewUTF8(fromValue);
+        const bufSize = 65536;
+        const bufPtr = Module._malloc(bufSize);
+        Module._memset(bufPtr, 0, bufSize);
+        const encSize = Module._convert_str(pduPtr, fromEncPtr, toEncPtr, hexPtr, bufPtr, bufSize);
+        const jer = Module.UTF8ToString(bufPtr);
+        Module._free(pduPtr);
+        Module._free(hexPtr);
+        Module._free(toEncPtr);
+        Module._free(fromEncPtr);
+        Module._free(bufPtr);
+        const result = document.getElementById('result');
+        result.innerHTML = "Converted to " + encSize + " bytes of " + toValue?.toUpperCase();
+        outputElement.value = '';
+        Module.print(jer);
+        return jer;
+    }
+
+    function selectPdu(selectedPdu) {
+        pduElement.value = selectedPdu;
+    }
+
+    function selectExample(selectedExample) {
+        switch (selectedExample) {
+            case 'spatMessageFrame':
+                fromElement.value = 'uper';
+                toElement.value = 'xer';
+                pduElement.value = 'MessageFrame';
+                inputElement.value = '001338000817a780000089680500204642b342b34802021a15a955a940181190acd0acd20100868555c555c00104342aae2aae002821a155715570';
+                break;
+            case 'mapData':
+                fromElement.value = 'uper';
+                toElement.value = 'xer';
+                pduElement.value = 'MapData';
+                inputElement.value = '7F2AC48D34380F049305AD3E982BB8EBCF8974C490985C69A3E0100912330BC58F3533B990ADBD037EB2124C16B4FA42A081C0800008041EFEC8569C5C4491D8B4D863F49400890CE792B14BC6FF5E002873AC3D5AA6C50B973F29F90C29305ACDA1016000010170154469AFF68B45F7E48BE5608177C00425D8C8FBFB68025F181010922D087FA42018137623CF27ABE4F8FF44FC561C982D69A22040E00000200095E931D65DC2BDB5B2FF8000D7F312FE5BB233FECD00181D8B72FD5666BF880206838E1F8949C5E97BAC74BF4F81271CA0088000100026933647627B7E3782695A36A1A5E0F3FC2384019987E820410146899BB2B9C8FCE800D34D56C97D76A64048083008BE9F0E24011C1C982D69DBBF57E0B62693AA763039D84818313A4F101640406D4AED322BB441E0007EF4124C16B4FA651021040000080005EA2E4A0AA0D03F8E0087600F9370FC096BF464017E0C40D0919E29FF2A004F45B99A260904FF8E8019574B68285D9DB7A9A5C312E0E4C16B4F63C0C9C76922DE6A591E6CA9552D5D1A0E0B05A80BF3507260B5A6F240210800020020F1BA08077B3A2C37D8DFF94B856AA493E4E4014D73F24697FFDAFAF000FA5007D1FF3694FEB8401DD7D138C51BD09FFF100515361CCC71A2BBFA400554A33F5261933535528FC46049B8210101000042EDDEBE9234A98E872D5707C8C8039CCA6280846565393FB4C6F11C0C983186ED3D4D68D887A3A227BA63E13020B3A44F8DCD9061FA48D2F05896411FB0049305AD3E8C04800020042E61DB0E822708D17B5CC17E090024B4262AE38E8DFF9B800F21E1402362EFB7CE08034422A6C171D9F4241FB84093C480411000040030A6CE962AC8E060609210080154C41890612AA41EB513E30101C915EE9567CD0CFC3802402FEA75E0F837BE34041DA19A435A063D4FAF020405DB37524E767BF480813783E9B8A7F698098FC3A1C982D69C59008041000B8F0E27E0183F6A695F845FD30029F92784022161D7EEA0037F758D85FBE1B3F3A200E21D14FA12A43B9A8B37ED40E4C16B4D20802C4000020B8A3ABBD8F6E653E7B52345F35020BCA212DD11678A7DB404349362BC0A6578FF0A002EB36C2134F61CAB4C5063737E66024ACA0100400800022699BC08DA9D05F6D010CE20806A21AF287C184033A8196E252A851F00080C3230B8797CE5F21ADB1D709260B5A7D2541D25F8BD4586171382D50C158ECE4DEA2A76905EDE08FD7A049345001C000002010BE7DB90135B7A45E64F372BCE43F370FC8C0234C980F6DC33B43F4D0809702284C96CBFD0EF7ED9124C16B4FA0C120040200400109DB1337C4AEFF3F80A38E7248EBE9FF1F7DEE484BC8F09B1FCE004541B0AB498EA047FD404112D1DBDB39FBFE920D8A5564CFD9024982D69F4224401C0000022EB54640890C2A9C5E869FC1000B7E8867684A0DA9F6D0049F9530CC79194F7E0C0439D7B0EDD166C8BF1E002BDA3D1A060F73BBBF9C33BD7E3F064C1C7410082002002E6528E72D4DB8C0D2A321FE4C042B17BB989675071FDD002AF233E3BF44E41FD5808333D8BC0E1B70FBF80008EF14FCB1E1994432FD7A2597E220A4C16A8C810708004005C5A6BB5F210B855FE8B4FC10804EC9B04DE1FB81FF4A009EB32F765940434FA320059241F0B0A1126BF3640113D5BB33DD0F8BF9540074E6FEAEF682C8660089AEFB23819307DB654AFAF50C85E57AB623E9531E761FFC815A907B6C77B31FEE662B080BF2509260B5A7D34100424001000005A384E20F21454147A7D740837DCF0D32E4B203FA1400A3645CBDC49EDDFD5C00728EA08D34B4443FFD100FC07EDAF0A42AEFF3D002E71E5F865BCF90CEDA7C539FA1829305AB52004D000008176938786AA95CF5CFA48BFFA0818322C5B8EA2FC7FB5100607509864FE8B0BFDA011647065E12CC9B71FAF009205260B5019304124C16B4FA0089A070E0C30D1010830';
+                break;
+            case 'VehicleEventFlags':
+                fromElement.value = 'uper';
+                toElement.value = 'xer';
+                pduElement.value = 'VehicleEventFlags';
+                inputElement.value = '8740FE';
+                break;
+            case 'bsmMessageFrame':
+                fromElement.value = 'uper';
+                toElement.value = 'xer';
+                pduElement.value = 'MessageFrame';
+                inputElement.value = '0014505767567EDDDFA3E68037E116658105B0DA9414000070F402B0FD630FA1007F82800000000000A5C01F81844EE7040DBF2014904853D058FBF201E984D16505BCBEE02AC0563130563BDB04001AA1ED00';
+                break;
+            case 'rsmMessageFrame':
+                fromElement.value = 'uper';
+                toElement.value = 'xer';
+                pduElement.value = 'MessageFrame';
+                inputElement.value = '002182B72F00878190A929E86A88B1BFD51931DD5E3826BFFB8B343AFB6741300FE5C32BA3BBDE67193178F6B7A4C55D7F92AC0F0491F9F41C7FF5C0EAAC660564EC7395A3852EF80497084BD802D70CEE59F40525C774EA036AC088DCD87C1F53E812C941115332BD8AD799163C0A9C81C982D69E83F981552BFD669E5A5F2D16C74FA63E918F8F0F604A90F3A1C12E23BBAD93CB049305AD3E920B77A512C50E4CA153321E342E7B46E1E301A8A4E59014982D4A049305AD3E880A4C16A881C14BB827A1AA228030783694F4354452130736F1056E8D0514C69E86A88BA29495BE95B96477A30E24A8B850AE4165F37B57429305AA82946C0941100F20C350AD1F10EFBC12F596922EAF9F5EE842DA5CB6A3207E642A0903C5B0D861EC9F40E00D471F4F4B0459E06117072B5EC72EDD6E8A402049001556AA6ADA64EBB41999C5CFA6548032950FA47C8D7026AC31E9E66DAADAA6D910CD5064C14484DC189C9FC95A23DF37185E92AD35592B8E0E5EFD26B49962279A2B778687051070CE2BA22974CB3B0110112EADFF2FCBC29B8D28C75BF56B3AB2B823CFE3F939D142D716370A601AC78E4A5FBCF10807A140AB40F08C4344158FB9404A4FC4F5DF57B57F128327A46AD6AD1BBBBF0FF8413612022A903960AA847A131787C4361D860C2B5BD507FAF45ECD0BAF9DC89D2817EC92DDCFDD89C28532C350AD3DEA25C2100228D4347F980931D2B8DFE2BADCA94D615CA0CBEBB2A091E58BE2B51215BE98AE235E1515E348C6CA2AF567FF1CB6449305AD3E988951821392E876D923D4C0E367116255FE6BBB512CBBCD0D5A0FEA65F650A52B5E633EA40E8458E51282F562201A529BB46DA51247A862897C9696F1FB10774216AB8E3CF15D715DB2E514268A9DA38D309EF0FA0C539C893308E63BD5AFBA44436666541EA275627FC4448A5CC2AFBCB2A88869C4D09800949BB79F0573CD5AA7DE4F46A0';
+                break;
+            case 'srmMessageFrameXer':
+                fromElement.value = 'xer';
+                toElement.value = 'uper';
+                pduElement.value = 'MessageFrame';
+                inputElement.value = '<MessageFrame><messageId>29</messageId><value><SignalRequestMessage><timeStamp>150383</timeStamp><second>46389</second><sequenceNumber>35</sequenceNumber><requests><SignalRequestPackage><request><id><region>60478</region><id>53170</id></id><requestID>69</requestID><requestType><priorityRequest/></requestType><inBoundLane><lane>73</lane></inBoundLane><outBoundLane><connection>210</connection></outBoundLane></request><minute>32619</minute><second>24346</second><duration>9042</duration></SignalRequestPackage><SignalRequestPackage><request><id><region>46862</region><id>49570</id></id><requestID>117</requestID><requestType><priorityRequest/></requestType><inBoundLane><connection>220</connection></inBoundLane><outBoundLane><connection>31</connection></outBoundLane></request><minute>521707</minute><second>22544</second><duration>52454</duration></SignalRequestPackage><SignalRequestPackage><request><id><region>43525</region><id>40438</id></id><requestID>166</requestID><requestType><priorityRequestTypeReserved/></requestType><inBoundLane><approach>11</approach></inBoundLane><outBoundLane><lane>181</lane></outBoundLane></request><minute>219720</minute><second>11192</second><duration>64018</duration></SignalRequestPackage><SignalRequestPackage><request><id><region>5763</region><id>42762</id></id><requestID>219</requestID><requestType><priorityRequestTypeReserved/></requestType><inBoundLane><connection>191</connection></inBoundLane><outBoundLane><connection>226</connection></outBoundLane></request><minute>460533</minute><second>739</second><duration>13786</duration></SignalRequestPackage></requests><requestor><id><stationID>1185356351</stationID></id><type><role><fire/></role><subrole><requestSubRole10/></subrole><request><requestImportanceLevelUnKnown/></request><iso3883>57</iso3883><hpmsType><unknown/></hpmsType></type><position><position><lat>-861889337</lat><long>-332488125</long><elevation>14206</elevation></position><heading>14746</heading><speed><transmisson><neutral/></transmisson><speed>3415</speed></speed></position><name>IA5St</name><routeName>IA5S</routeName><transitStatus>00010000</transitStatus><transitOccupancy><occupancyHigh/></transitOccupancy><transitSchedule>-95</transitSchedule></requestor></SignalRequestMessage></value></MessageFrame>';
+                break;
+            case 'ssmJer':
+                fromElement.value = 'jer';
+                toElement.value = 'uper';
+                pduElement.value = 'SignalStatusMessage';
+                inputElement.value = '{"timeStamp":386361,"second":56467,"sequenceNumber":92,"status":[{"sequenceNumber":117,"id":{"region":55820,"id":37456},"sigStatus":[{"requester":{"id":{"stationID":2213653523},"request":244,"sequenceNumber":36,"role":"military","typeData":{"role":"military","subrole":"requestSubRole7","request":"requestImportanceLevel4","iso3883":38,"hpmsType":"axleCnt4Trailer"}},"inboundOn":{"lane":119},"outboundOn":{"lane":53},"minute":432762,"second":20743,"duration":10603,"status":"watchOtherTraffic"},{"requester":{"id":{"stationID":1260127439},"request":222,"sequenceNumber":112,"role":"dot","typeData":{"role":"cyclist","subrole":"requestSubRoleUnKnown","request":"requestImportanceLevel13","iso3883":3,"hpmsType":"special"}},"inboundOn":{"approach":13},"outboundOn":{"approach":6},"minute":58706,"second":36737,"duration":60987,"status":"processing"},{"requester":{"id":{"entityID":"4F435445"},"request":222,"sequenceNumber":61,"role":"dot","typeData":{"role":"slowMoving","subrole":"requestSubRole5","request":"requestImportanceReserved","iso3883":4,"hpmsType":"axleCnt4"}},"inboundOn":{"lane":112},"outboundOn":{"approach":2},"minute":508767,"second":11619,"duration":41603,"status":"granted"}]},{"sequenceNumber":110,"id":{"region":19262,"id":6479},"sigStatus":[{"requester":{"id":{"stationID":3290809845},"request":153,"sequenceNumber":26,"role":"ambulance","typeData":{"role":"transit","subrole":"requestSubRoleReserved","request":"requestImportanceLevel7","iso3883":17,"hpmsType":"axleCnt2"}},"inboundOn":{"lane":101},"outboundOn":{"approach":1},"minute":198982,"second":23811,"duration":19574,"status":"requested"},{"requester":{"id":{"stationID":1104295127},"request":148,"sequenceNumber":81,"role":"slowMoving","typeData":{"role":"nonMotorized","subrole":"requestSubRole8","request":"requestImportanceLevel3","iso3883":82,"hpmsType":"axleCnt3"}},"inboundOn":{"approach":10},"outboundOn":{"connection":129},"minute":34134,"second":36755,"duration":7024,"status":"maxPresence"},{"requester":{"id":{"entityID":"4F435445"},"request":199,"sequenceNumber":86,"role":"nonMotorized","typeData":{"role":"roadWork","subrole":"requestSubRole7","request":"requestImportanceLevel10","iso3883":99,"hpmsType":"axleCnt5Trailer"}},"inboundOn":{"connection":125},"outboundOn":{"connection":116},"minute":442879,"second":2868,"duration":47530,"status":"granted"},{"requester":{"id":{"entityID":"4F435445"},"request":58,"sequenceNumber":94,"role":"none-unknown","typeData":{"role":"slowMoving","subrole":"requestSubRole14","request":"requestImportanceLevelUnKnown","iso3883":99,"hpmsType":"moto"}},"inboundOn":{"connection":198},"outboundOn":{"lane":166},"minute":507279,"second":64780,"duration":57429,"status":"watchOtherTraffic"},{"requester":{"id":{"stationID":2299740078},"request":250,"sequenceNumber":127,"role":"specialTransport","typeData":{"role":"pedestrian","subrole":"requestSubRoleReserved","request":"requestImportanceReserved","iso3883":4,"hpmsType":"none"}},"inboundOn":{"connection":0},"outboundOn":{"lane":104},"minute":345080,"second":665,"duration":59192,"status":"reserviceLocked"}]},{"sequenceNumber":60,"id":{"region":13492,"id":42633},"sigStatus":[{"requester":{"id":{"entityID":"4F435445"},"request":249,"sequenceNumber":16,"role":"fire","typeData":{"role":"roadSideSource","subrole":"requestSubRoleReserved","request":"requestImportanceReserved","iso3883":14,"hpmsType":"unknown"}},"inboundOn":{"approach":11},"outboundOn":{"connection":139},"minute":74244,"second":12723,"duration":59557,"status":"reserviceLocked"},{"requester":{"id":{"entityID":"4F435445"},"request":215,"sequenceNumber":102,"role":"none-unknown","typeData":{"role":"slowMoving","subrole":"requestSubRole9","request":"requestImportanceLevel10","iso3883":69,"hpmsType":"axleCnt6MultiTrailer"}},"inboundOn":{"connection":192},"outboundOn":{"approach":0},"minute":390367,"second":8445,"duration":3134,"status":"requested"},{"requester":{"id":{"entityID":"4F435445"},"request":65,"sequenceNumber":21,"role":"dangerousGoods","typeData":{"role":"nonMotorized","subrole":"requestSubRole12","request":"requestImportanceLevel12","iso3883":66,"hpmsType":"axleCnt6Trailer"}},"inboundOn":{"lane":254},"outboundOn":{"approach":13},"minute":332344,"second":30030,"duration":26547,"status":"watchOtherTraffic"},{"requester":{"id":{"entityID":"4F435445"},"request":42,"sequenceNumber":56,"role":"slowMoving","typeData":{"role":"roadRescue","subrole":"requestSubRole13","request":"requestImportanceLevel2","iso3883":16,"hpmsType":"moto"}},"inboundOn":{"connection":88},"outboundOn":{"approach":6},"minute":104577,"second":16762,"duration":18588,"status":"rejected"}]},{"sequenceNumber":22,"id":{"region":59210,"id":39976},"sigStatus":[{"requester":{"id":{"stationID":2120078918},"request":152,"sequenceNumber":28,"role":"motorcycle","typeData":{"role":"publicTransport","subrole":"requestSubRole9","request":"requestImportanceLevel7","iso3883":59,"hpmsType":"axleCnt3"}},"inboundOn":{"lane":48},"outboundOn":{"lane":75},"minute":477045,"second":39772,"duration":26242,"status":"processing"},{"requester":{"id":{"stationID":2726794096},"request":135,"sequenceNumber":96,"role":"basicVehicle","typeData":{"role":"slowMoving","subrole":"requestSubRoleUnKnown","request":"requestImportanceLevel14","iso3883":46,"hpmsType":"car"}},"inboundOn":{"approach":5},"outboundOn":{"connection":203},"minute":140261,"second":4281,"duration":14711,"status":"reserviceLocked"}]},{"sequenceNumber":12,"id":{"region":592,"id":32571},"sigStatus":[{"requester":{"id":{"stationID":4054397673},"request":95,"sequenceNumber":52,"role":"truck","typeData":{"role":"roadSideSource","subrole":"requestSubRoleUnKnown","request":"requestImportanceLevelUnKnown","iso3883":4,"hpmsType":"axleCnt5MultiTrailer"}},"inboundOn":{"approach":3},"outboundOn":{"connection":248},"minute":391198,"second":65056,"duration":34106,"status":"rejected"},{"requester":{"id":{"stationID":1083349414},"request":205,"sequenceNumber":72,"role":"motorcycle","typeData":{"role":"roadWork","subrole":"requestSubRole10","request":"requestImportanceLevel12","iso3883":22,"hpmsType":"moto"}},"inboundOn":{"connection":246},"outboundOn":{"connection":185},"minute":431207,"second":33772,"duration":57059,"status":"requested"}]}]}';
+                break;
+            case 'rtcmJer':
+                fromElement.value = 'jer';
+                toElement.value = 'uper';
+                pduElement.value = 'RTCMcorrections';
+                inputElement.value = '{"msgCnt":35,"rev":"reserved","timeStamp":58096,"anchorPoint":{"utcTime":{"year":2544,"month":9,"day":20,"hour":12,"minute":51,"second":31725,"offset":-512},"long":-42301303,"lat":-40358307,"elevation":8671,"heading":4300,"speed":{"transmisson":"reserved3","speed":1748},"posAccuracy":{"semiMajor":245,"semiMinor":218,"orientation":10516},"timeConfidence":"time-000-000-002","posConfidence":{"pos":"unavailable","elevation":"elev-020-00"},"speedConfidence":{"heading":"prec10deg","speed":"prec0-05ms","throttle":"prec1percent"}},"rtcmHeader":{"status":"01","offsetSet":{"antOffsetX":-863,"antOffsetY":215,"antOffsetZ":501}},"msgs":["4F43544554","4F43"]}';
+                break;
+
+        }
+        outputElement.value = '';
+    }
+</script>
+<!--<script async type="text/javascript" src="v2x.js"></script>-->
+<script type="module">
+    import initModule from "./v2x.js";
+    initModule(Module);
+</script>
+</body>
+</html>

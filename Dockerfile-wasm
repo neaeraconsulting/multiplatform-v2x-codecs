@@ -1,0 +1,53 @@
+#   Copyright 2025 Neaera Consulting LLC
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+# We require CMAKE version 3.28+ from Ubuntu Noble 24.04+
+# The official Emscripten image uses Ubuntu Jammay, with too old of a cmake version
+# so we need to build our own image.
+FROM ubuntu:noble AS custom-emscripten-image
+USER root
+WORKDIR /v2x_wasm
+
+ADD ./generated         /v2x_wasm/generated
+ADD ./custom            /v2x_wasm/custom
+ADD ./src               /v2x_wasm/src
+ADD ./examples          /v2x_wasm/examples
+ADD ./CMakeLists.txt    /v2x_wasm
+ADD ./run.sh            /v2x_wasm
+
+ENV CC=/usr/bin/clang
+ENV EMSDK=/emsdk
+ENV EM_CMAKE_TOOLCHAIN=/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+ENV EMCC=/emsdk/upstream/emscripten/emcc
+
+# Install prereqs
+RUN apt update && \
+    apt install -y clang && \
+    apt install -y cmake && \
+    apt install -y git && \
+    apt install -y xz-utils
+
+# Install Emscripten sdk
+# Ref: https://emscripten.org/docs/getting_started/downloads.html
+RUN mkdir /emsdk && \
+    git clone https://github.com/emscripten-core/emsdk.git /emsdk && \
+    chmod u+rwx /emsdk && \
+    chmod a+x /emsdk && \
+    chmod u+x /emsdk/emsdk_env.sh && \
+    /emsdk/emsdk install latest && \
+    /emsdk/emsdk activate latest && \
+    /emsdk/emsdk_env.sh
+
+# Run script to build the CLI tool and WASM library
+CMD ["/v2x_wasm/run.sh"]
