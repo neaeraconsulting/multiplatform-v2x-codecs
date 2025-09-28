@@ -387,7 +387,7 @@ We welcome contributions to this open source project! Whether you want to report
 To report an issue:
 
 1. First check this README and all other documentation in this repo, and existing issues, to see if your problem or suggestion has already been addressed.
-2. Create a new issue here: https://github.com/neaeraconsulting/j2735-ffm-java/issues
+2. Create a new issue here: https://github.com/neaeraconsulting/multiplatform-v2x-codecs/issues
 3. Provide a clear and concise description of the issue or feature request, including details of the development environment, platform, operating system, or browser used, and list specific and detailed steps to reproduce the issue.
 
 To contribute:
