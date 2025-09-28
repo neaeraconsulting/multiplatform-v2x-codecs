@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Provides a simple converter API in C for the complete J2735 (2024) specification, with libraries and command-line tools compiled for multiple platforms to converte messages between UPER, JER, and XER encodings.  Includes:
+Provides a simple converter API in C for the complete J2735 (2024) specification, with libraries and command-line tools compiled for multiple platforms to convert messages between UPER, JER, and XER encodings.  Includes:
 * A WebAssembly library that can run in any browser, and a Node.js command line app that can run on any platform that supports Node.js.
 * A demo website that uses the WebAssembly library.
 * A native CLI tool and library for Windows 11.
